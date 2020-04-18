@@ -37,9 +37,9 @@ class Projectile_v0 (gym.Env):
     def __init__ (self):
         self.fire = FireSolution()
 
-        act_min = np.array([ np.float32(0.0) ])
-        act_max = np.array([ np.float32(60.0) ])
-        self.action_space = spaces.Box(act_min, act_max)
+        high = np.float32(60.0)
+        self.action_space = spaces.Box(np.float32(0.0), high, shape=(1,))
+
         self.observation_space = spaces.Tuple((spaces.Discrete(self.fire.range), spaces.Discrete(self.fire.range),))
 
         self.np_random = None
@@ -56,8 +56,10 @@ class Projectile_v0 (gym.Env):
         """
         self.seed()
 
+        half_range = self.fire.range / 2
+
         _pos = 0
-        _loc = round(self.np_random.random() * float(self.fire.range))
+        _loc = round(self.np_random.random() * float(half_range) + half_range)
         self.state = [ _loc, _pos ]
 
         self.reward = -100.0
@@ -106,29 +108,28 @@ class Projectile_v0 (gym.Env):
 
         else:
             degree = action[0]
-            location, last_hit = self.state
+            loc, last_pos = self.state
 
             theta = self.fire.deg_to_rad(degree)
-            hit = round(self.fire.calc_dist(theta))
-            delta = abs(location - hit)
+            pos = round(self.fire.calc_dist(theta))
+            delta = abs(loc - pos)
 
-            self.state[1] = hit
+            self.state[1] = pos
             self.info["theta"] = theta
             self.info["delta"] = delta
 
             self.render()
 
-        if hit <= self.fire.radius:
-            # launch crew is dead
+        if pos <= self.fire.radius:
+            # realistically, the launch crew should be dead
             self.reward = -100.0
-            self.done = 1;
         elif delta <= self.fire.radius:
-            # target hit
+            # target hit (within blast radius)
             self.reward = 100.0
             self.done = 1;
         else:
             # reward is the "nearness" of the blast destroying the target
-            self.reward = round(100.0 * float(abs(location - delta)) / float(self.fire.range))
+            self.reward = round(100.0 * float(abs(loc - delta)) / float(self.fire.range))
 
         return [self.state, self.reward, self.done, self.info]
 

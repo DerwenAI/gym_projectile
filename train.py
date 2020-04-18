@@ -12,7 +12,7 @@ import sys
 
 CHECKPOINT_PATH = "/tmp/ppo/proj"
 SELECT_ENV = "projectile-v0"
-N_ITER = 2
+N_ITER = 1
 
 
 def train_policy (agent, path, debug=True, n_iter=N_ITER):
@@ -37,7 +37,8 @@ def rollout_actions (agent, env, debug=True, render=True, max_steps=100):
 
     for step in range(max_steps):
         last_state = state
-        action = agent.compute_action(state, explore=False)
+        print("state", state)
+        action = agent.compute_action(state)
         state, reward, done, _ = env.step(action)
 
         if debug:
@@ -58,7 +59,6 @@ if __name__ == "__main__":
     config["log_level"] = "WARN"
 
     register_env("projectile-v0", lambda config: Projectile_v0())
-    env = gym.make(SELECT_ENV)
 
     # train a policy with RLlib using PPO
 
@@ -70,4 +70,6 @@ if __name__ == "__main__":
     # apply the trained policy in a use case
 
     agent.restore(checkpoint_path)
+    env = gym.make(SELECT_ENV)
+
     rollout_actions(agent, env)

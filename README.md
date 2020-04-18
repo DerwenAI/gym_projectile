@@ -3,17 +3,26 @@
 A simple implementation of an [OpenAI Gym](http://gym.openai.com/)
 environment, to show a simulation of a projectile trajectory.
 
+Assumes: level ground, no atmosphere
+
 
 ## Usage
 
 Clone the repo and connect into its top level directory.
-Then run:
+
+Then to run the `gym` example:
 
 ```
 pip install -r requirements.txt
 pip install -e gym-projectile
 
 python example.py
+```
+
+Then to run Ray RLlib to train a policy based on this environment:
+
+```
+python train.py
 ```
 
 
