@@ -6,8 +6,8 @@ import numpy as np
 
 
 G_EARTH = 9.807
-MAX_RANGE_M224 = 3490.0
-MAX_RADIUS_M224 = 25.0
+MAX_RANGE_M224 = 3490
+MAX_RADIUS_M224 = 25
 
 
 class FireSolution:
@@ -17,7 +17,7 @@ class FireSolution:
         self.g = _g
         self.range = _range
         self.radius = _radius
-        self.velocity = math.sqrt(self.range * self.g)
+        self.velocity = math.sqrt(float(self.range) * self.g)
 
 
     @classmethod
@@ -36,8 +36,12 @@ class Projectile_v0 (gym.Env):
 
     def __init__ (self):
         self.fire = FireSolution()
-        self.action_space = spaces.Box(low=np.float32(0), high=np.float32(90), shape=(1,))
-        self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(self.fire.range), shape=(1,))
+
+        act_min = np.array([ np.float32(0.0) ])
+        act_max = np.array([ np.float32(60.0) ])
+        self.action_space = spaces.Box(act_min, act_max)
+        self.observation_space = spaces.Tuple((spaces.Discrete(self.fire.range), spaces.Discrete(self.fire.range),))
+
         self.np_random = None
         self.reset()
 
@@ -51,7 +55,10 @@ class Projectile_v0 (gym.Env):
         observation (object): the initial observation of the space.
         """
         self.seed()
-        self.state = round(self.np_random.random() * self.fire.range)
+
+        _pos = 0
+        _loc = round(self.np_random.random() * float(self.fire.range))
+        self.state = [ _loc, _pos ]
 
         self.reward = -100.0
         self.done = 0
@@ -99,23 +106,29 @@ class Projectile_v0 (gym.Env):
 
         else:
             degree = action[0]
-            theta = self.fire.deg_to_rad(degree)
-            dist = self.fire.calc_dist(theta)
-            delta = abs(self.state - dist)
+            location, last_hit = self.state
 
+            theta = self.fire.deg_to_rad(degree)
+            hit = round(self.fire.calc_dist(theta))
+            delta = abs(location - hit)
+
+            self.state[1] = hit
             self.info["theta"] = theta
-            self.info["dist"] = dist
             self.info["delta"] = delta
 
             self.render()
 
-        if delta <= self.fire.radius:
+        if hit <= self.fire.radius:
+            # launch crew is dead
+            self.reward = -100.0
+            self.done = 1;
+        elif delta <= self.fire.radius:
+            # target hit
             self.reward = 100.0
             self.done = 1;
-            print("win")
         else:
             # reward is the "nearness" of the blast destroying the target
-            self.reward = 100.0 * (self.fire.range - delta) / self.fire.range
+            self.reward = round(100.0 * float(abs(location - delta)) / float(self.fire.range))
 
         return [self.state, self.reward, self.done, self.info]
 

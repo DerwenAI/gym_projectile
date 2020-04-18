@@ -17,5 +17,5 @@ if __name__ == "__main__":
         print(state, reward, done, info)
 
         if done == 1:
-            print("step", i)
+            print(f"done @ step {i}")
             break
