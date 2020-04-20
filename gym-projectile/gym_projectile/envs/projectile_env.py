@@ -66,7 +66,7 @@ class Projectile_v0 (gym.Env):
         self.done = 0
         self.info = {}
 
-        return self.state
+        return self.observation_space.sample()
 
 
     def step (self, action):
