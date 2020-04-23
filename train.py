@@ -6,13 +6,16 @@ from ray.tune.registry import register_env
 import gym
 import pprint
 import ray
-import ray.rllib.agents.ppo as ppo
+import ray.rllib.agents.sac as sac
 import sys
+# NB: SACTrainer requires tensorflow_probability so test it here
+import tensorflow as tf
+import tensorflow_probability as tfp
 
 
-CHECKPOINT_PATH = "/tmp/ppo/proj"
+CHECKPOINT_PATH = "/tmp/sac/proj"
 SELECT_ENV = "projectile-v0"
-N_ITER = 1
+N_ITER = 10
 
 
 def train_policy (agent, path, debug=True, n_iter=N_ITER):
@@ -32,17 +35,19 @@ def train_policy (agent, path, debug=True, n_iter=N_ITER):
     return checkpoint_path, reward_history
 
 
-def rollout_actions (agent, env, debug=True, render=True, max_steps=100):
-    state = env.reset()
-
+def rollout_actions (agent, env, debug=True, render=True, max_steps=1000, episode_interval=20):
     for step in range(max_steps):
+        if step % episode_interval == 0:
+            state = env.reset()
+
         last_state = state
         print("state", state)
         action = agent.compute_action(state)
-        state, reward, done, _ = env.step(action)
+        state, reward, done, info = env.step(action)
 
         if debug:
             print("state", last_state, "action", action, "reward", reward)
+            print(info)
 
         if render:
             env.render()
@@ -55,14 +60,14 @@ if __name__ == "__main__":
     ray.shutdown()
     ray.init(ignore_reinit_error=True)
 
-    config = ppo.DEFAULT_CONFIG.copy()
+    config = sac.DEFAULT_CONFIG.copy()
     config["log_level"] = "WARN"
 
     register_env("projectile-v0", lambda config: Projectile_v0())
 
-    # train a policy with RLlib using PPO
+    # train a policy with RLlib using SAC
 
-    agent = ppo.PPOTrainer(config, env=SELECT_ENV)
+    agent = sac.SACTrainer(config, env=SELECT_ENV)
     checkpoint_path, reward_history = train_policy(agent, CHECKPOINT_PATH)
 
     print(reward_history)

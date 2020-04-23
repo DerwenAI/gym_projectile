@@ -9,6 +9,9 @@ G_EARTH = 9.807
 MAX_RANGE_M224 = 3490
 MAX_RADIUS_M224 = 25
 
+HI_ANGLE = 60.0
+LO_ANGLE = 20.0
+
 
 class FireSolution:
     # M224 60mm: 20-25 m; 20 rpm; 70–3490m range; 241 m/s muzzle velocity
@@ -37,8 +40,10 @@ class Projectile_v0 (gym.Env):
     def __init__ (self):
         self.fire = FireSolution()
 
-        high = np.float32(60.0)
-        self.action_space = spaces.Box(np.float32(0.0), high, shape=(1,))
+        # NB: the Box bounds for `action_space` must range [-1.0, 1.0]
+        # or the sampling breaks during rollout
+        high = np.float32(HI_ANGLE / HI_ANGLE)
+        self.action_space = spaces.Box(np.float32(LO_ANGLE / HI_ANGLE), high, shape=(1,))
 
         self.observation_space = spaces.Tuple((spaces.Discrete(self.fire.range), spaces.Discrete(self.fire.range),))
 
@@ -103,11 +108,11 @@ class Projectile_v0 (gym.Env):
                  use this for learning.
         """
         if self.done == 1:
-            print("game over")
+            print("episode done")
             return [self.state, self.reward, self.done, self.info]
 
         else:
-            degree = action[0]
+            degree = float(action[0] * HI_ANGLE)
             loc, last_pos = self.state
 
             theta = self.fire.deg_to_rad(degree)
@@ -115,7 +120,8 @@ class Projectile_v0 (gym.Env):
             delta = abs(loc - pos)
 
             self.state[1] = pos
-            self.info["theta"] = theta
+            self.info["degree"] = degree
+            self.info["theta"] = round(theta, 3)
             self.info["delta"] = delta
 
             self.render()
